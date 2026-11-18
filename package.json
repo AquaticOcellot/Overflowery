@@ -1,0 +1,20 @@
+{
+  "name": "overflowery",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@12.21.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "pixi.js": "^8.9.2"
+  },
+  "devDependencies": {
+    "typescript": "~5.7.2",
+    "vite": "^6.1.0"
+  }
+}
