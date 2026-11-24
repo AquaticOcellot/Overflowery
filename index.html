@@ -8,85 +8,108 @@
   </head>
   <body>
     <div class="app-shell">
-      <div class="canvas-wrap" id="factory-view" aria-label="Flower meadow. Use WASD to move, scroll to zoom, and click flowers to harvest."></div>
+      <div class="canvas-wrap" id="factory-view" aria-label="Flower meadow"></div>
       <header class="topbar">
-        <a class="brand" href="#" aria-label="Overflowery home">
-          <span class="brand-mark"><i data-icon="flower" class="tool-icon"></i></span><span>OVERFLOW<b>ERY</b></span>
+        <a class="brand topbar-group" href="#" aria-label="Overflowery home">
+          <span>OVERFLOWERY</span><small id="game-version"></small>
         </a>
-        <div class="resources" aria-label="Harvest summary">
-          <div class="resource"><span class="resource-icon flower-icon"><i data-icon="flower" class="tool-icon"></i></span><span>HARVESTED</span><b id="harvest-count">0</b></div>
-          <div class="resource"><span class="resource-icon energy-icon"><i data-icon="generator" class="tool-icon"></i></span><span>ENERGY</span><b id="energy-count">0 J / 100 kJ</b></div>
-          <div class="resource"><span class="resource-icon ash-icon"><i data-icon="ash" class="tool-icon"></i></span><span>ASH</span><b id="ash-count">0</b></div>
-          <div class="resource"><span class="resource-icon patch-icon"><i data-icon="patch" class="tool-icon"></i></span><span>PATCHES</span><b>04</b></div>
+        <div class="topbar-group topbar-actions">
+        <button class="menu-toggle" id="notes-toggle" type="button" aria-label="Field notes" data-help="Review your harvest history and flower quality." aria-expanded="false" aria-controls="field-notes"><span data-icon="flower"></span><span class="notes-label">Field notes</span></button>
+        <button class="menu-toggle" id="research-toggle" type="button" aria-label="Research" data-help="Spend stored energy on permanent upgrades." aria-expanded="false" aria-controls="research-menu">
+          <span data-icon="research"></span><span class="menu-label">Research</span>
+        </button>
+        <button class="menu-toggle inventory-toggle" id="inventory-toggle" type="button" aria-label="Inventory" data-help="Shift-click or Shift-drag to transfer stacks. Ctrl-click a stack to transfer its matches. Ctrl-click empty space to empty that container into the other one." aria-expanded="true" aria-controls="inventory-menu">
+          <span><i data-icon="inventory" class="tool-icon"></i></span><span class="menu-label">Inventory</span> <b id="toggle-stack-count">0/32</b>
+        </button>
         </div>
-        <button class="menu-toggle" id="research-toggle" type="button" aria-expanded="false" aria-controls="research-menu">
-          <span data-icon="research"></span> RESEARCH
-        </button>
-        <button class="menu-toggle inventory-toggle" id="inventory-toggle" type="button" aria-expanded="true" aria-controls="inventory-menu">
-          <span><i data-icon="inventory" class="tool-icon"></i></span> INVENTORY <b id="toggle-stack-count">0</b>
-        </button>
       </header>
 
-      <div class="scene-label"><span class="status-dot"></span> MEADOW 01 <span>·</span> WILDFLOWER FIELDS <span id="game-version"></span></div>
-      <div class="network-status"><b id="network-summary">0 heat / 0 nutrient roots</b><span id="tile-readout">Hover a tile to inspect heat</span><span>Overlay: orange = heat · green dots = nutrients</span></div>
+      <div class="network-status" id="tile-tooltip" hidden><span id="tile-readout"></span><span id="root-readout"></span></div>
 
-      <aside class="inventory-menu" id="inventory-menu">
-        <div class="menu-heading">
-          <div><div class="eyebrow">FIELD BAG</div><h1>Inventory</h1></div>
-          <span class="menu-live"><span class="status-dot"></span> EXPLORING</span>
-        </div>
-          <section class="inventory-section">
-            <div class="section-title"><span>INVENTORY</span><span class="section-count" id="stack-count">0 STACKS</span></div>
-            <p class="section-hint">Flowers of different qualities keep separate stacks. Each stack holds up to 100.</p>
-            <div class="inventory-grid" id="inventory" aria-live="polite"></div>
-          </section>
-          <div class="tip-card"><span class="tip-symbol"><i data-icon="flower" class="tool-icon"></i></span><div><b>FIELD GUIDE</b><p>Burners make heat; generators turn heat into electricity. Composters supply nutrients. Connect both root networks to flowers for faster growth. Each link costs 1 Common flower.</p></div></div>
-          <div class="save-note"><span class="save-dot"></span> Inventory resets when you refresh</div>
+      <aside class="inventory-menu" id="inventory-menu" aria-label="Inventory">
+        <div class="inventory-grid" id="inventory" role="list" aria-label="Inventory slots" aria-live="polite"></div>
       </aside>
 
+      <aside class="popup-menu field-notes" id="field-notes" aria-label="Harvest observations" hidden></aside>
       <aside class="popup-menu research-menu" id="research-menu" hidden>
-        <div class="menu-heading"><div><div class="eyebrow">FIELD SCIENCE</div><h1>Research</h1></div><span class="menu-live"><i data-icon="generator" class="tool-icon"></i> <b id="research-energy">0 J</b></span></div>
-        <p class="section-hint">Spend energy on upgrades for burners, fertilizer, and flower quality.</p>
+        <div class="menu-heading"><div><h1>Research</h1></div><span class="menu-live"><i data-icon="generator" class="tool-icon"></i> <b id="research-energy">0 J</b></span></div>
         <div class="research-list" id="research-list"></div>
       </aside>
 
       <aside class="popup-menu generator-menu" id="generator-menu" hidden>
-        <div class="menu-heading"><div><div class="eyebrow">POWER PLANT</div><h1 id="machine-title">Petal burner</h1></div><span class="menu-live"><span class="status-dot"></span> READY</span></div>
-        <p class="section-hint" id="machine-hint">Burners produce heat. Connect heat roots to a separate generator for electricity.</p>
-        <div class="generator-buffer">
-          <div class="section-title"><span>GLOBAL BUFFER</span><span id="buffer-charge">0 J / 100 kJ</span></div>
-          <meter id="energy-buffer" min="0" max="100000" value="0" aria-label="Global energy buffer"></meter>
+        <div class="menu-heading"><div><h1 id="machine-title">Petal burner</h1></div><span class="menu-live"><span class="status-dot"></span> Ready</span></div>
+        <div class="generator-buffer" id="generator-storage" hidden>
+          <div class="section-title"><span id="storage-label">Energy storage</span><span id="buffer-charge">0 J / 10 kJ</span></div>
+          <meter id="energy-buffer" min="0" max="10000" value="0" aria-label="Stored power"></meter>
         </div>
         <div class="generator-cycle">
-          <div class="cycle-copy"><b id="cycle-label">Idle · ready for fuel</b><small id="cycle-time">1 kW heat · common fuel lasts 2 seconds.</small></div>
+          <div class="cycle-copy"><b id="cycle-label">Idle · ready for fuel</b><small id="cycle-time">2 kW fuel → 3 kW heat · 150% efficiency</small></div>
           <div class="cycle-track" role="progressbar" aria-label="Burn cycle progress"><span id="cycle-progress"></span></div>
         </div>
-        <div class="section-title"><span>CHOOSE FUEL</span><span class="section-count" id="fuel-count">0 FLOWERS</span></div>
-        <div class="fuel-list" id="fuel-list"></div>
+        <button class="cancel-construction" id="cancel-construction" type="button" data-help="Dismantle this unfinished site and recover half of its materials as Greenery." hidden>Cancel construction · dismantle</button>
+        <div id="machine-input">
+          <div class="section-title"><span id="input-label">Input buffer</span><span class="section-count" id="fuel-count">0 flowers</span></div>
+          <div class="inventory-grid machine-input-grid" id="fuel-list" role="list" aria-label="Machine input slots"></div>
+        </div>
+      </aside>
+
+      <aside class="popup-menu building-menu" id="building-menu" aria-label="Buildings" hidden>
+        <div class="menu-heading"><h1><i data-icon="buildings" class="menu-heading-icon"></i>Buildings</h1></div>
+        <div class="building-list">
+          <button class="tool-button building-choice" id="tool-small-burner" type="button" data-help="Place a small burner for 10 Common flowers."><i data-icon="burner"></i><span><b>Small burner</b><small>1×1 · 1 kW heat · 10 Common</small></span></button>
+          <button class="tool-button building-choice" id="tool-burner" type="button" data-help="Place a large burner. It needs 10 Uncommon or better flowers."><i data-icon="burner"></i><span><b>Large burner</b><small>3×2 · 3 kW heat · 10 Uncommon+</small></span></button>
+          <button class="tool-button building-choice" id="tool-generator" type="button" data-help="Place a generator on a heat root for 10 Common flowers."><i data-icon="generator"></i><span><b>Generator</b><small>1×1 · 1 kW electricity · 10 Common</small></span></button>
+          <button class="tool-button building-choice" id="tool-battery" type="button" data-help="Place a 100 kJ battery for 10 Common flowers. Connect it to generators with power roots."><i data-icon="battery"></i><span><b>Battery</b><small>2×1 · 100 kJ storage · 10 Common</small></span></button>
+          <button class="tool-button building-choice" id="tool-composter" type="button" data-help="Place a composter for 10 Common flowers to turn flowers into nutrients."><i data-icon="composter"></i><span><b>Composter</b><small>1×1 · 2 nutrients/s · 10 Common</small></span></button>
+          <button class="tool-button building-choice" id="tool-harvester" type="button" data-help="Harvests ripe flowers up to 2 tiles away, except the four diagonal corners. Uses 1 kJ per harvest roll and stores output in its own 12-slot inventory."><i data-icon="harvester"></i><span><b>Harvester</b><small>1×1 · 12 output slots · 1 kJ/roll · 10 Common</small></span></button>
+        </div>
+        <button class="building-rotate" id="building-rotate" type="button" aria-label="Rotate building" data-help="Rotate the selected building footprint." hidden><i data-icon="rotate"></i><span>3×2</span></button>
       </aside>
 
       <div class="game-notice" id="game-notice" role="status" aria-live="polite" hidden></div>
 
       <div class="tool-palette" aria-label="World tools">
-        <button class="tool-button active" id="tool-harvest" type="button" title="Click flowers to harvest"><i data-icon="flower" class="tool-icon"></i> <span>Harvest</span></button>
-        <button class="tool-button" id="tool-burner" type="button" title="Click an empty tile to place a burner"><i data-icon="burner" class="tool-icon"></i> <span>Place burner</span></button>
-        <button class="tool-button" id="tool-generator" type="button" title="Place a heat-powered electric generator"><i data-icon="generator" class="tool-icon"></i> <span>Generator</span></button>
-        <button class="tool-button" id="tool-composter" type="button" title="Place a composter to turn flowers into nutrients"><i data-icon="composter" class="tool-icon"></i> <span>Composter</span></button>
-        <button class="tool-button" id="tool-fertilize" type="button" title="Click a flower tile to apply ash"><i data-icon="ash" class="tool-icon"></i> <span>Fertilize</span></button>
-        <button class="tool-button" id="tool-roots" type="button" title="Connect any two orthogonally adjacent tiles"><i data-icon="roots" class="tool-icon"></i> <span>Roots</span></button>
-        <button class="tool-button" id="tool-uproot" type="button" title="Click the two endpoints of a root to remove it"><i data-icon="remove" class="tool-icon"></i> <span>Uproot</span></button>
-        <button class="tool-button" id="heat-toggle" type="button" aria-pressed="false" title="Show stored heat and nutrients on tiles"><i data-icon="network" class="tool-icon"></i> <span>Network view</span></button>
+        <button class="tool-button active" id="tool-harvest" aria-label="Harvest" data-help="Click a flower to pick it. Area picking unlocks in Research." type="button"><i data-icon="flower" class="tool-icon"></i> <span>Harvest</span></button>
+        <button class="tool-button" id="build-toggle" aria-label="Buildings" data-help="Choose a burner, generator, battery, composter, or harvester to place." aria-expanded="false" aria-controls="building-menu" type="button"><i data-icon="buildings" class="tool-icon"></i><span>Buildings</span></button>
+        <button class="tool-button" id="tool-designate" type="button" aria-label="Designate flower area" data-help="Choose a flower rule, then drag over tiles to mark an area."><i data-icon="designation" class="tool-icon"></i><span>Flower area</span></button>
+        <button class="tool-button" id="tool-fertilize" aria-label="Fertilize" data-help="Unlock area picking and fertilizing in Research for 100 kJ." type="button" disabled><i data-icon="ash" class="tool-icon"></i> <span>Fertilize</span></button>
+        <button class="tool-button" id="tool-roots" aria-label="Place roots" data-help="Heat and nutrient roots gain levels automatically as resources flow through them. Place water/power roots by painting links, then upgrade a link by repainting it with Common flowers." type="button"><i data-icon="roots" class="tool-icon"></i> <span>Roots</span></button>
       </div>
+      <aside class="designation-controls" id="designation-controls" aria-label="Flower designations" hidden>
+        <b class="designation-heading"><i data-icon="designation"></i>Flower area</b>
+        <div class="notes-buttons" id="designation-species" role="group" aria-label="Flower species"></div>
+        <div class="designation-actions" role="group" aria-label="Area rules">
+          <button type="button" class="notes-choice designation-mode" id="designation-any" data-help="Allow any flower species in the marked area." aria-pressed="false">Any</button>
+          <button type="button" class="notes-choice designation-mode" id="designation-avoid" data-help="Keep flowers out of the marked area." aria-pressed="false">Avoid</button>
+          <button type="button" id="clear-designations" class="notes-choice designation-clear" aria-label="Clear selected area" data-help="Drag over tiles to remove their area rules." aria-pressed="false"></button>
+        </div>
+        <span id="designation-instruction">Drag a rectangle to designate planting tiles.</span><span id="designation-status">0 designated tiles</span>
+      </aside>
       <div class="root-controls" id="root-controls" hidden>
-        <label for="root-kind">ROOT TYPE</label>
-        <select id="root-kind"><option value="heat">Heat roots · orange</option><option value="nutrient">Nutrient roots · green</option></select>
-        <p id="root-hint">Click a tile, then an adjacent tile. Continue clicking to extend the root.</p>
-        <small>Each new link costs 1 Common flower of any species. Networks can overlap. Uproot removes the selected network only; no refund. No diagonal links.</small>
+        <span id="root-action-label">Roots</span>
+        <div class="root-types" role="group" aria-label="Root type">
+          <button type="button" class="root-type" data-root-kind="heat" aria-label="Heat roots" data-help="Build heat roots; resource flow levels them up automatically." aria-pressed="true"><i data-icon="heatRoot"></i></button>
+          <button type="button" class="root-type" data-root-kind="utility" aria-label="Water and power roots" data-help="Place water/power roots by painting links. Upgrade a link by repainting it with Common flowers; resource flow does not raise its level." aria-pressed="false"><i data-icon="utilityRoot"></i></button>
+          <button type="button" class="root-type" data-root-kind="nutrient" aria-label="Nutrient roots" data-help="Build nutrient roots; resource flow levels them up automatically." aria-pressed="false"><i data-icon="nutrientRoot"></i></button>
+          <button type="button" class="root-type root-action" data-root-action="uproot" aria-label="Uproot roots" data-help="Select two adjacent tiles to remove that root." aria-pressed="false"><i data-icon="remove"></i></button>
+        </div>
       </div>
 
       <footer class="controls">
-        <div class="control-hint"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>MOVE</span><i></i><kbd>SCROLL</kbd><span>ZOOM</span><i></i><kbd>CLICK</kbd><span>HARVEST</span></div>
-        <button class="zoom-readout" id="zoom-reset" type="button" title="Reset zoom">100%</button>
+        <div class="bottom-controls">
+          <div class="resources resource-overlay" aria-label="Resources">
+            <div class="resource"><span class="resource-icon energy-icon"><i data-icon="generator" class="tool-icon"></i></span><span>Energy</span><b id="energy-count">0 J</b></div>
+            <div class="resource"><span class="resource-icon ash-icon"><i data-icon="ash" class="tool-icon"></i></span><span>Ash</span><b id="ash-count">0</b></div>
+          </div>
+          <div class="control-toggles">
+            <button class="network-toggle" id="heat-toggle" aria-label="Network view" data-help="Show or hide root network levels and resources." type="button" aria-pressed="false"><i data-icon="network"></i></button>
+            <div class="speed-controls" role="group" aria-label="Simulation speed">
+              <button class="speed-toggle" id="speed-control" type="button" aria-label="Simulation speed 1×" data-help="Left-click to increase speed by 10×, up to 100×. Right-click to decrease speed by 10×, down to 0.1×.">1×</button>
+            </div>
+            <button class="zoom-range-toggle" id="zoom-range-toggle" type="button" aria-label="Extended zoom range" aria-pressed="false" data-help="Toggle extended zoom. When active, zoom ranges from 10% to 1000%.">10–1000%</button>
+            <button class="zoom-readout" id="zoom-reset" aria-label="Reset zoom" data-help="Click to reset the view to 100% zoom." type="button">100%</button>
+          </div>
+        </div>
       </footer>
     </div>
     <script type="module" src="/src/main.ts"></script>

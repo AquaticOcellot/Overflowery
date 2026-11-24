@@ -1,5 +1,6 @@
 export const generatorPowerWatts = 1_000;
-export const bufferCapacityJoules = 100_000;
+export const generatorCapacityJoules = 10_000;
+export const batteryCapacityJoules = 100_000;
 
 export type FuelCharge = { totalJoules: number; remainingJoules: number };
 
@@ -12,17 +13,8 @@ export function formatEnergy(joules: number) {
     : `${Math.floor(joules)} J`;
 }
 
-// Share the remaining buffer space proportionally when multiple generators fill it.
-export function advanceGeneration(charges: FuelCharge[], storedJoules: number, seconds: number) {
-  const available = Math.max(0, bufferCapacityJoules - storedJoules);
-  const demands = charges.map((charge) => Math.min(charge.remainingJoules, generatorPowerWatts * Math.max(0, seconds)));
-  const demand = demands.reduce((sum, value) => sum + value, 0);
-  const ratio = demand > 0 ? Math.min(1, available / demand) : 0;
-  let generated = 0;
-  charges.forEach((charge, index) => {
-    const transferred = demands[index] * ratio;
-    charge.remainingJoules -= transferred;
-    generated += transferred;
-  });
-  return Math.min(bufferCapacityJoules, storedJoules + generated);
+// A generator converts local heat into its own buffer; connected power networks share buffers by priority.
+export function advanceGenerator(availableHeat: number, storedJoules: number, seconds: number) {
+  const generated = Math.max(0, Math.min(availableHeat, generatorPowerWatts * Math.max(0, seconds), generatorCapacityJoules - storedJoules));
+  return { heatUsed: generated, storedJoules: storedJoules + generated };
 }

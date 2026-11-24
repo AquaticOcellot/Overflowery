@@ -1,0 +1,41 @@
+import type { Construction } from '../construction';
+import type { BuildingKind, Rotation } from '../buildings';
+import type { FuelCharge } from '../energy';
+import type { Inventory } from '../inventory';
+import type { Tile } from '../roots';
+import type { flowerIcons, itemIcons, qualityIcons } from '../assets';
+
+export type FlowerId = keyof typeof flowerIcons;
+export type FlowerItemId = keyof typeof itemIcons;
+export type Quality = { id: keyof typeof qualityIcons; name: string };
+export type Flower = {
+  uid: number;
+  id: FlowerId;
+  x: number;
+  y: number;
+  growth: number;
+  fertilizer: number;
+  updatedAt: number;
+  watering: number;
+  elevation: number;
+  growthDuration: number;
+  cycleStartedAt?: number;
+  readyAt?: number;
+  cycleBoosted: boolean;
+  harvest?: { qualities: Quality[]; regrowthSeconds?: number; modified: boolean; loggedGrowth: boolean };
+};
+export type Stack = { flower: FlowerItemId; quality: Quality; count: number };
+export type MachineKind = BuildingKind;
+export type Mode = 'harvest' | MachineKind | 'fertilize' | 'roots' | 'uproot' | 'designate';
+export type Panel = 'inventory' | 'research' | 'generator' | 'notes' | null;
+export type FuelJob = FuelCharge & { flowerName: string; qualityName: string };
+export type Machine = Tile & {
+  kind: MachineKind;
+  rotation: Rotation;
+  input: Inventory<Stack>;
+  output?: Inventory<Stack>;
+  materials: Inventory<Stack>;
+  construction?: Construction;
+  job?: FuelJob;
+  compost?: { remaining: number };
+};
