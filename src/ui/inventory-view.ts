@@ -41,7 +41,7 @@ export function createInventoryView(options: InventoryViewOptions) {
     const machine = machines.get(owner.slice('machine:'.length));
     if (machine?.construction) return machine.construction.materialCost > 0 ? machine.materials : undefined;
     if (machine?.kind === 'harvester') return machine.output;
-    return machine && machine.kind !== 'generator' && machine.kind !== 'battery' && machine.kind !== 'harvester' ? machine.input : undefined;
+    return machine && machine.kind !== 'generator' && machine.kind !== 'battery' ? machine.input : undefined;
   }
 
   function renderInventory() {
@@ -65,7 +65,7 @@ export function createInventoryView(options: InventoryViewOptions) {
   }
 
   function setupDrag() {
-    let drag: { pointerId: number; source: Inventory<Stack>; owner: string; index: number; stack?: Stack; x: number; y: number; shift: boolean; ctrl: boolean; swept: boolean; sweptSlots: Set<number>; ghost?: HTMLElement } | null = null;
+    let drag: { pointerId: number; source: Inventory<Stack>; owner: string; index: number; stack?: Stack | null; x: number; y: number; shift: boolean; ctrl: boolean; swept: boolean; sweptSlots: Set<number>; ghost?: HTMLElement } | null = null;
     const selectedMachineContainer = () => {
       const machine = machines.get(selectedMachine());
       if (!machine) return undefined;
@@ -179,7 +179,7 @@ export function createInventoryView(options: InventoryViewOptions) {
     });
     document.addEventListener('pointerup', (event) => {
       if (!drag || event.pointerId !== drag.pointerId) return;
-      if (drag.ghost && drag.source[drag.index] === drag.stack) {
+      if (drag.ghost && drag.stack && drag.source[drag.index] === drag.stack) {
         const slot = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-owner][data-slot]');
         const destination = slot ? inventoryFor(slot.dataset.owner!) : undefined;
         if (slot && destination) {

@@ -226,7 +226,7 @@ export function distributePower(network: RootNetwork, buffers: PowerBuffer[]) {
     addNode(key);
   }
   // Preserve any legacy or unassigned node storage as low-priority producer storage.
-  for (const [id, nodes] of components) for (const key of nodes) {
+  for (const nodes of components.values()) for (const key of nodes) {
     if (entriesByNode.has(key)) continue;
     const [x, y] = key.split(',').map(Number);
     const tile = { x, y };

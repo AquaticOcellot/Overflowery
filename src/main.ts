@@ -769,7 +769,6 @@ async function start() {
     simulationSpeed,
     kinds: itemKinds,
     qualities,
-    research,
     worldStroke: () => worldStroke,
     hoveredTile: () => hoveredTile,
     activePanel: () => activePanel,

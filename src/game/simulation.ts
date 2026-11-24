@@ -9,7 +9,7 @@ import type { PlantMovement } from '../plant-movement';
 import { startBufferedJob } from './production';
 import { harvesterEnergyPerRoll, harvesterTiles } from './harvester';
 import type { Inventory } from '../inventory';
-import type { Flower, Machine, Panel, Quality } from './types';
+import type { Flower, Machine, Panel, Quality, Stack } from './types';
 
 type WorldStroke = { mode: 'harvest' | 'roots' | 'uproot'; last: Tile } | null;
 type SimulationOptions = {
@@ -31,7 +31,6 @@ type SimulationOptions = {
   simulationSpeed: { multiplier: number };
   kinds: { id: string; name: string }[];
   qualities: Quality[];
-  research: { id: string; cost: number; repeatable?: boolean }[];
   worldStroke: () => WorldStroke;
   hoveredTile: () => Tile | null;
   activePanel: () => Panel;
@@ -50,7 +49,7 @@ type SimulationOptions = {
 
 export function bindSimulationTicker(options: SimulationOptions) {
   const { app, camera, zoom, keys, state, world, flowers, hydrateFlowerTile, flowerSprites, machines, network, nutrientNetwork,
-    powerNetwork, waterNetwork, plantMovement, simulationSpeed, kinds, qualities, research, worldStroke,
+    powerNetwork, waterNetwork, plantMovement, simulationSpeed, kinds, qualities, worldStroke,
     hoveredTile, activePanel, updateCamera, notify, passiveGrowth, harvestFlower, updateFlowerVisual,
     updateConstructionVisual, drawNetwork, updateGeneratorCycle, updateResources, renderResearch, renderFuel } = options;
   let visualTimer = 0;
