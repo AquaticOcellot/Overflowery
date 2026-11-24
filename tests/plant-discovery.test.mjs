@@ -27,7 +27,7 @@ test('cross of four distant species fills using real chunk generation and hydrat
   const movement=new PlantMovement({plants:()=>plants.values(),at:p=>{hydrate(world.getChunk(chunkCoordinate(p.x),chunkCoordinate(p.y)));return plants.get(key(p));},walkable:p=>world.getTile(p.x,p.y).terrain==='land',discover:p=>hydrate(world.getChunk(p.x,p.y)),resetCycle:p=>{p.growth=0;},relocate:moves=>relocatePlants(moves,plants,world)},targets);
   const filled=()=>[...targets.values()].filter(t=>plants.get(key(t))?.id===t.flower).length;
   for(let frame=0;frame<1800&&filled()<targets.size;frame++){
-    movement.beginFrame();for(const p of movement.activePlants())p.growth=1;movement.step();
+    movement.beginFrame();movement.planTick();for(const p of movement.activePlants())p.growth=1;movement.step();
   }
   assert.equal(filled(),targets.size,`only ${filled()}/${targets.size} filled; ${plants.size} plants, ${world.chunks.size} chunks, ${movement.reservations.byPlant.size} requests; missing ${JSON.stringify([...targets.values()].filter(t=>plants.get(key(t))?.id!==t.flower).map(t=>t.flower))}; candidates ${JSON.stringify([...plants.values()].reduce((a,p)=>(a[p.id]=(a[p.id]??0)+1,a),{}))}; excluded ${movement.unreachable.size}; bounds ${JSON.stringify([...movement.discoveryBounds])}`);
 });

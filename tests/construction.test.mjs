@@ -1,11 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import ts from 'typescript';
+import { loadTS } from './load-ts.mjs';
 
-const source = await readFile(new URL('../src/construction.ts', import.meta.url), 'utf8');
-const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } });
-const { createConstruction, advanceConstruction, deliverMaterials, queuedMaterials } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+const { createConstruction, advanceConstruction, deliverMaterials, queuedMaterials } = await loadTS(new URL('../src/construction.ts', import.meta.url));
 const flowers = (count, quality = 'uncommon', flower = 'blue') => ({ count, quality: { id: quality }, flower });
 const largeBurnerConstruction = () => createConstruction(10, 10);
 
@@ -48,12 +45,14 @@ test('waiting without materials does not bank construction time', () => {
   assert.equal(buffer[0].count, 9);
 });
 
-test('only Uncommon flowers fund construction; other qualities remain untouched', () => {
+test('Common flowers cannot fund construction; higher-quality flowers can', () => {
   const state = largeBurnerConstruction(), buffer = [flowers(10, 'normal'), flowers(10, 'rare')];
-  assert.equal(advanceConstruction(state, buffer, 20), false);
-  assert.equal(state.secondsBuilt, 0);
+  assert.equal(advanceConstruction(state, buffer, 20), true);
+  assert.equal(state.secondsBuilt, 10);
+  assert.equal(state.paidFlowers, 10);
   assert.equal(buffer[0].count, 10);
-  assert.equal(buffer[1].count, 10);
+  assert.equal(buffer[1], null);
+  assert.deepEqual(state.spentMaterials, [{ qualityId: 'rare', count: 10 }]);
 });
 
 test('delivery accepts only the missing material quantity and leaves excess in the bag', () => {

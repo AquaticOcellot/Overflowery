@@ -1,11 +1,31 @@
-import {readFile} from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import ts from 'typescript';
-const cache=new Map();
-export async function loadTS(url){
-  const name=url.href;if(cache.has(name))return cache.get(name);
-  let {outputText}=ts.transpileModule(await readFile(url,'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}});
-  const matches=[...outputText.matchAll(/from ['"](\.[^'"]+)['"]/g)];
-  for(const match of matches){const dependency=await moduleURL(new URL(match[1]+'.ts',url));outputText=outputText.replace(match[0],`from '${dependency}'`);}
-  const uri=`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`;cache.set(name,uri);return import(uri);
+
+const modules = new Map();
+const moduleURLs = new Map();
+
+export function loadTS(url) {
+  const key = url.href;
+  if (modules.has(key)) return modules.get(key);
+  const module = compileAndLoad(url);
+  modules.set(key, module);
+  return module;
 }
-async function moduleURL(url){await loadTS(url);return cache.get(url.href);}
+
+async function compileAndLoad(url) {
+  let { outputText } = ts.transpileModule(await readFile(url, 'utf8'), {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
+  });
+
+  const imports = [...outputText.matchAll(/from ['"](\.[^'"]+)['"]/g)];
+  for (const match of imports) {
+    const dependency = new URL(match[1], url);
+    if (!/\.[cm]?[jt]sx?$/i.test(dependency.pathname)) dependency.pathname += '.ts';
+    await loadTS(dependency);
+    outputText = outputText.replaceAll(match[0], `from '${moduleURLs.get(dependency.href)}'`);
+  }
+
+  const moduleURL = `data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`;
+  moduleURLs.set(url.href, moduleURL);
+  return import(moduleURL);
+}

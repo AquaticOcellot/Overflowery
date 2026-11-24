@@ -1,14 +1,8 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import ts from 'typescript';
-const load = async path => {
-  const source=await readFile(new URL(path,import.meta.url),'utf8');
-  const compiled=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}});
-  return import(`data:text/javascript;base64,${Buffer.from(compiled.outputText).toString('base64')}`);
-};
-const {SimulationSpeed,simulationSteps}=await load('../src/speed.ts');
-const {advanceConstruction,createConstruction}=await load('../src/construction.ts');
+import { loadTS } from './load-ts.mjs';
+const {SimulationSpeed,simulationSteps}=await loadTS(new URL('../src/speed.ts',import.meta.url));
+const {advanceConstruction,createConstruction}=await loadTS(new URL('../src/construction.ts',import.meta.url));
 
 test('speed changes by factors of ten between 0.1x and 100x',()=>{
   const speed=new SimulationSpeed();

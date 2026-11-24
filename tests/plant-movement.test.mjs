@@ -12,7 +12,7 @@ function simulation(entries,targets,{size=20,discover=()=>{}}={}){
   const designations=new Map(targets.map(([x,y,flower])=>[`${x},${y}`,{x,y,flower}]));
   let transactions=0,discoveries=0;
   const movement=new PlantMovement({plants:()=>plants.values(),at:p=>plants.get(key(p)),walkable:p=>world.getTile(p.x,p.y).terrain==='land',discover:p=>{discoveries++;discover(p,plants);},resetCycle:p=>{p.growth=0;},relocate:moves=>{for(const m of moves)assert.ok(m.plant.growth>=1);assert.ok(moves.length<=2);relocatePlants(moves,plants,world);transactions++;}},designations);
-  function frame(grow=true,budgetMs=3){movement.beginFrame(budgetMs);if(grow)for(const p of movement.activePlants())p.growth=Math.min(1,p.growth+.25+(p.uid%3)*.05);for(let i=0;i<100;i++)movement.step();}
+  function frame(grow=true,budgetMs=3){movement.beginFrame(1,budgetMs);movement.planTick();if(grow)for(const p of movement.activePlants())p.growth=1;for(let i=0;i<100;i++)movement.step();}
   const satisfied=()=>[...designations.values()].every(t=>plants.get(key(t))?.id===t.flower);
   return {plants,world,designations,movement,frame,satisfied,get transactions(){return transactions;},get discoveries(){return discoveries;}};
 }
@@ -55,7 +55,7 @@ test('clearing reservations releases control without removing unrelated work',()
 test('movement continues past the former transaction limit within a shared time budget',()=>{
   const s=simulation([[0,0,'blue']],[[15,0,'blue']]);
   for(let i=0;i<10;i++)s.frame(false);
-  s.movement.beginFrame(100);const before=s.transactions;
+  s.movement.beginFrame(1,100);s.movement.planTick();const before=s.transactions;
   for(let i=0;i<100;i++){for(const p of s.movement.activePlants())p.growth=1;s.movement.step();}
   assert.ok(s.transactions-before>2);
 });
@@ -90,7 +90,7 @@ test('missing species are discovered incrementally instead of blocking a frame',
     if(chunk.x===1&&chunk.y===0)plants.set(`${chunkSize},0`,{uid:1,id:'blue',x:chunkSize,y:0,growth:0,watering:0,elevation:0});
   }});
   for(let i=0;i<200&&!s.satisfied();i++){const before=s.discoveries;s.frame();assert.ok(s.discoveries-before<=2);}
-  assert.ok(s.satisfied());
+  assert.ok(s.satisfied(), `not filled: ${JSON.stringify({ discoveries:s.discoveries, plants:[...s.plants].map(([k,p])=>({key:k,uid:p.uid,id:p.id,x:String(p.x),y:p.y})), jobs:[...s.movement.reservations.byPlant.values()], bounds:[...s.movement.discoveryBounds] })}`);
 });
 
 test('routes detour around water and buildings rather than replanning around flowers',()=>{

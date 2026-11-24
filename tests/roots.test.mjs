@@ -1,15 +1,10 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import ts from 'typescript';
+import { loadTS } from './load-ts.mjs';
 
-const source = await readFile(new URL('../src/roots.ts', import.meta.url), 'utf8');
-const { outputText } = ts.transpileModule(source, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } });
-const { RootNetwork, createUtilityNetworks, storedPower, spendPower, rootStats, rootKey, growWithHeat, growWithNutrients, placePaidRoot, advanceProducer } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+const { RootNetwork, createUtilityNetworks, storedPower, spendPower, rootStats, rootKey, growWithHeat, growWithNutrients, placePaidRoot, advanceProducer } = await loadTS(new URL('../src/roots.ts', import.meta.url));
 const a = { x: 1, y: 1 }, b = { x: 2, y: 1 }, c = { x: 3, y: 1 };
-const energySource = await readFile(new URL('../src/energy.ts', import.meta.url), 'utf8');
-const energyCode = ts.transpileModule(energySource, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
-const { advanceGenerator } = await import(`data:text/javascript;base64,${Buffer.from(energyCode).toString('base64')}`);
+const { advanceGenerator } = await loadTS(new URL('../src/energy.ts', import.meta.url));
 
 test('generator uses only local heat and its own capacity, with no global reservoir', () => {
   const heat = new RootNetwork(5,5);
@@ -75,7 +70,7 @@ test('heat and nutrient roots overlap but cannot exchange resources', () => {
   assert.equal(heat.roots.size, 1);
 });
 
-test('new links cost one Common flower; invalid, duplicate and unaffordable links are safe', () => {
+test('new links accept Common+ flowers, prefer Common, and reject invalid or unaffordable links', () => {
   const net = new RootNetwork(5, 5);
   const stacks = [{ quality: { id: 'rare' }, count: 4 }, { quality: { id: 'normal' }, count: 1 }];
   assert.equal(placePaidRoot(net, a, c, stacks), 'invalid');
@@ -85,9 +80,11 @@ test('new links cost one Common flower; invalid, duplicate and unaffordable link
   assert.equal(stacks[1], null);
   assert.equal(stacks[0].count, 4);
   assert.equal(placePaidRoot(net, b, a, stacks), 'existing');
-  assert.equal(placePaidRoot(net, b, c, stacks), 'unaffordable');
-  assert.equal(net.roots.size, 1);
-  assert.equal(stacks[0].count, 4);
+  assert.equal(placePaidRoot(net, b, c, stacks), 'placed');
+  assert.equal(net.roots.size, 2);
+  assert.equal(stacks[0].count, 3);
+  assert.equal(placePaidRoot(net, c, { x: 4, y: 1 }, []), 'unaffordable');
+  assert.equal(net.roots.size, 2);
 });
 
 test('burner produces only heat and pauses on full tile without consuming fuel', () => {
@@ -376,14 +373,14 @@ test('cyan roots require manual payment of 1, 2, 4, 8, 16 Common flowers and cap
 test('an unaffordable cyan upgrade cannot partially charge inventory or change level', () => {
   const {power}=createUtilityNetworks(5,5);
   power.connect(a,b);
-  const stacks=[{quality:{id:'normal'},count:1},{quality:{id:'uncommon'},count:100}];
+  const stacks=[{quality:{id:'normal'},count:1},{quality:{id:'uncommon'},count:0}];
   const before=structuredClone(stacks);
   assert.equal(placePaidRoot(power,b,a,stacks),'unaffordable');
   assert.deepEqual(stacks,before);
   assert.equal(rootStats(power.roots.get(rootKey(a,b))).level,1);
 });
 
-test('cyan channels keep water and power independent, water lossless and power 20x less lossy than heat', () => {
+test('cyan roots transport water but only decay stored power; the channels remain independent', () => {
   const {power,water}=createUtilityNetworks(5,5);
   const heat=new RootNetwork(5,5);
   power.connect(a,b);heat.connect(a,b);
@@ -394,7 +391,9 @@ test('cyan channels keep water and power independent, water lossless and power 2
   assert.ok(Math.abs(sum(power)-4000*Math.exp(-.001*10))<1e-6);
   assert.ok(Math.abs(sum(heat)-4000*Math.exp(-.02*10))<1e-6);
   assert.equal(water.capacity(a),20);assert.equal(power.capacity(a),4000);
-  assert.ok(water.amount(b)>0 && power.amount(b)>0);
+  assert.ok(water.amount(b)>0);
+  assert.equal(power.amount(b),0);
+  assert.ok(Math.abs(power.amount(a)-4000*Math.exp(-.001*10))<1e-6);
   const saved=water.amount(b);
   power.consume(b,100);
   assert.equal(water.amount(b),saved);
